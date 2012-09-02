@@ -39,7 +39,6 @@ A basic HTML5 Boilerplate site initially looks something like this:
 ├── robots.txt
 ├── crossdomain.xml
 ├── favicon.ico
-└── [apple-touch-icons]
 ```
 
 What follows is a general overview of each major part and how to use them.
