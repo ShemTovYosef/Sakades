@@ -1,5 +1,5 @@
-DROP TABLE Players;
 CREATE TABLE IF NOT EXISTS Players (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, played INTEGER, score INTEGER);
+DELETE FROM Players;
 
 INSERT INTO Players (name, played, score) VALUES ('Антон', 0, 1600);
 INSERT INTO Players (name, played, score) VALUES ('Иосиф', 0, 1600);
