@@ -1,20 +1,24 @@
 //  Declare SQL Query for SQLite
 
-var createStatement = "CREATE TABLE IF NOT EXISTS Players (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, played INTEGER, score INTEGER)";
+var createStatement = "CREATE TABLE IF NOT EXISTS Players (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, played INTEGER, score INTEGER);";
 
-var selectAllStatement = "SELECT * FROM Players";
+var selectAllStatement = "SELECT * FROM Players;";
 
-var insertStatement = "INSERT INTO Players (name, played, score) VALUES (?, ?, ?)";
+var insertStatement = "INSERT INTO Players (name, played, score) VALUES (?, ?, ?);";
 
-var updateStatement = "UPDATE Players SET name = ?, played = ?, score = ? WHERE id=?";
+var updateStatement = "UPDATE Players SET name = ?, played = ?, score = ? WHERE id=?;";
 
-var deleteStatement = "DELETE FROM Players WHERE id=?";
+var deleteStatement = "DELETE FROM Players WHERE id=?;";
 
-var dropStatement = "DROP TABLE Players";
+var dropStatement = "DROP TABLE IF EXISTS ";
+
+var selectTableDefition = "SELECT name, sql FROM sqlite_master WHERE type in ('table') AND name NOT LIKE '?_?_%' ESCAPE '?';";
 
 var db = html5sql.openDatabase("Sakades", "Sakades game statistic", 2 * 1024 * 1024);  // Open SQLite Database
 
 var dataset;
+
+var exportSql = "-- " + new Date() + ";\n";
 
 function initDatabase() { // Function Call When Page is ready.
     try {
@@ -79,14 +83,12 @@ function updateRecord() { // Get id of record. Function Call when Update Button 
     });
 }
 
-function dropTable() {// Function Call when Drop Button Click. Table will be dropped from database.
+function dropTable(tableName) {// Function Call when Drop Button Click. Table will be dropped from database.
     db.transaction(function (tx) {
-        tx.executeSql(dropStatement, [], showRecords, onError);
+        tx.executeSql(dropStatement + tableName, [], showRecords, onError);
     });
 
     resetForm();
-
-    initDatabase();
 }
 
 function loadRecord(i) { // Function for display records which are retrived from database.
@@ -118,25 +120,69 @@ function onError(tx, error) { // Function for Hendeling Error...
 function showRecords() { // Function For Retrive data from Database Display records as list
     $("#results").html('')
 
-    db.transaction(function (tx) {
+    db.readTransaction(function (tx) {
         tx.executeSql(selectAllStatement, [], function (tx, result) {
-            dataset = result.rows;
+                dataset = result.rows;
 
-            if (dataset.length > 0) {
-                var tableCaption = '<ul>Name : Score [Games]</ul>';
-                $("#results").append(tableCaption);
+                if (dataset.length > 0) {
+                    var tableCaption = '<ul>Name : Score [Games]</ul>';
+                    $("#results").append(tableCaption);
+                }
+
+                for (var i = 0, item = null; i < dataset.length; i++) {
+                    item = dataset.item(i);
+
+                    var linkeditdelete = '<li>' + item['name'] + ' : ' + item['score'] + ' [' + item['played'] + '] '
+                        + '<a href="#" onclick="loadRecord(' + i + ');">edit</a>' + '    ' +
+                        '<a href="#" onclick="deleteRecord(' + item['id'] + ');">delete</a></li>';
+
+                    $("#results").append(linkeditdelete);
+                }
             }
+        );
+    });
+}
 
-            for (var i = 0, item = null; i < dataset.length; i++) {
-                item = dataset.item(i);
+function exportDatabase() { // Function for Export database data into sql file
+    var tableNames = [];
+    var tableDDLs = [];
+    db.readTransaction(function (tx) {
+        tx.executeSql(selectTableDefition, [],
+            function (tx, tableNamesResults) {
+                if (tableNamesResults.rows) {
+                    for (var tableNum = 0; tableNum < tableNamesResults.rows.length; tableNum++) {
+                        var defRow = tableNamesResults.rows.item(tableNum);
+                        var tableName = defRow.name;
+                        tableNames.push(tableName);
+                        tableDDLs.push(defRow.sql);
 
-                var linkeditdelete = '<li>' + item['name'] + ' : ' + item['score'] + ' [' + item['played'] + '] '
-                    + '<a href="#" onclick="loadRecord(' + i + ');">edit</a>' + '    ' +
-                    '<a href="#" onclick="deleteRecord(' + item['id'] + ');">delete</a></li>';
-
-                $("#results").append(linkeditdelete);
+                        tx.executeSql("SELECT * FROM " + tableName, [], function (tx, results) {
+                            tableName = tableNames.pop();
+                            exportSql += "\n-- exporting data for " + tableName.toUpperCase() + "\n";
+                            exportSql += dropStatement + tableName + ";\n";
+                            exportSql += tableDDLs.pop() + ";\n\n";
+                            if (results.rows) {
+                                for (var i = 0; i < results.rows.length; i++) {
+                                    var row = results.rows.item(i);
+                                    var _fields = [];
+                                    var _values = [];
+                                    for (var col in row) {
+                                        _fields.push(col);
+                                        _values.push('"' + row[col] + '"');
+                                    }
+                                    exportSql += "INSERT INTO " + tableName + "(" + _fields.join(",") + ") VALUES (" + _values.join(",") + ");\n";
+                                }
+                            }
+                            if (tableNames.length == 0) {
+                                console.log(exportSql);
+                            }
+                        });
+                    }
+                    tableNames.reverse();
+                    tableDDLs.reverse();
+                }
             }
-        });
+        );
     });
 }
 
@@ -149,5 +195,5 @@ $(document).ready(function () { // Call function when page is ready for load..
     $("#submitButton").click(insertRecord);
     $("#btnUpdate").click(updateRecord);
     $("#btnReset").click(resetForm);
-    $("#btnDrop").click(dropTable);
+    $("#btnExport").click(exportDatabase);
 });

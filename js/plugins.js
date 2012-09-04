@@ -13,6 +13,8 @@ if (!(window.console && console.log)) {
 }
 
 // Place any jQuery/helper plugins in here.
+
+// Creating database by sql statements from file
 var html5sql = (function () {
 
     var readTransactionAvailable = false,
