@@ -1,5 +1,9 @@
 ### HEAD
 
+### 1.1.0 (September 7, 2012)
+* Added UI visualization
+* Can save party and select players
+
 ### 1.0.2 (September 3, 2012)
 * Added export sql statements functionality
 

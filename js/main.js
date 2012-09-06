@@ -2,17 +2,19 @@
 
 var createStatement = "CREATE TABLE IF NOT EXISTS Players (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, played INTEGER, score INTEGER);";
 
-var selectAllStatement = "SELECT * FROM Players;";
+var selectAllStatement = "SELECT * FROM ";
 
-var insertStatement = "INSERT INTO Players (name, played, score) VALUES (?, ?, ?);";
+var insertPlayerStatement = "INSERT INTO Players (name, played, score) VALUES (?, ?, ?);";
 
-var updateStatement = "UPDATE Players SET name = ?, played = ?, score = ? WHERE id=?;";
+var insertPartyStatement = "INSERT INTO Parties (player_1, player_2, player_3, player_4, score) VALUES (?, ?, ?, ?, ?);";
+
+var updatePlayerStatement = "UPDATE Players SET name = ?, played = ?, score = ? WHERE id=?;";
 
 var deleteStatement = "DELETE FROM Players WHERE id=?;";
 
 var dropStatement = "DROP TABLE IF EXISTS ";
 
-var selectTableDefition = "SELECT name, sql FROM sqlite_master WHERE type in ('table') AND name NOT LIKE '?_?_%' ESCAPE '?';";
+var selectTableDefition = "SELECT name, sql FROM sqlite_master WHERE type in ('table') AND name NOT LIKE '?_?_%' ESCAPE '?' AND name != 'sqlite_sequence';";
 
 var db = html5sql.openDatabase("Sakades", "Sakades game statistic", 2 * 1024 * 1024);  // Open SQLite Database
 
@@ -22,7 +24,6 @@ var exportSql = "-- " + new Date() + ";\n";
 
 function initDatabase() { // Function Call When Page is ready.
     try {
-//        $.get('http://cs1368.userapi.com/u99693/docs/3dfea6ea70d4/db-statements.sql', function (sql) {
         $.get('src/db-statements.sql', function (sql) {
             var startTime = new Date();
             html5sql.process(
@@ -54,10 +55,24 @@ function insertRecord() { // Get value from Input and insert record . Function C
     var defaultScore = 1600;
 
     db.transaction(function (tx) {
-        tx.executeSql(insertStatement, [nametemp, initalPlayed, defaultScore], loadAndReset, onError);
+        tx.executeSql(insertPlayerStatement, [nametemp, initalPlayed, defaultScore], loadAndReset, onError);
     });
 
     //tx.executeSql(SQL Query Statement,[ Parameters ] , Sucess Result Handler Function, Error Result Handler Function );
+}
+
+function saveParty() { // Get value from Input and insert record . Function Call when Save/Submit Button Click..
+    var firstPlayer = $('select#first').val();
+    var secondPlayer = $('select#second').val();
+    var thirdPlayer = $('select#third').val();
+    var fourthPlayer = $('select#fourth').val();
+    var result = $('select#result').val();
+
+    db.transaction(function (tx) {
+        tx.executeSql(insertPartyStatement, [firstPlayer, secondPlayer, thirdPlayer, fourthPlayer, result], loadAndReset, onError);
+
+        // TODO: update played users with count of games and scores
+    });
 }
 
 function deleteRecord(id) { // Get id of record . Function Call when Delete Button Click..
@@ -79,16 +94,8 @@ function updateRecord() { // Get id of record. Function Call when Update Button 
     var playedUpdate = $('#played').val();
 
     db.transaction(function (tx) {
-        tx.executeSql(updateStatement, [nameupdate, playedUpdate, scoreUpdate, useridupdate], loadAndReset, onError);
+        tx.executeSql(updatePlayerStatement, [nameupdate, playedUpdate, scoreUpdate, useridupdate], loadAndReset, onError);
     });
-}
-
-function dropTable(tableName) {// Function Call when Drop Button Click. Table will be dropped from database.
-    db.transaction(function (tx) {
-        tx.executeSql(dropStatement + tableName, [], showRecords, onError);
-    });
-
-    resetForm();
 }
 
 function loadRecord(i) { // Function for display records which are retrived from database.
@@ -118,28 +125,41 @@ function onError(tx, error) { // Function for Hendeling Error...
 }
 
 function showRecords() { // Function For Retrive data from Database Display records as list
-    $("#results").html('')
+    $("#stats").html('');
 
     db.readTransaction(function (tx) {
-        tx.executeSql(selectAllStatement, [], function (tx, result) {
-                dataset = result.rows;
+        tx.executeSql(selectAllStatement + "Players", [], function (tx, result) {
+                var dataset = result.rows;
 
                 if (dataset.length > 0) {
                     var tableCaption = '<ul>Name : Score [Games]</ul>';
-                    $("#results").append(tableCaption);
+                    $("#stats").append(tableCaption);
                 }
 
-                for (var i = 0, item = null; i < dataset.length; i++) {
-                    item = dataset.item(i);
+                for (var i = 0, player = null; i < dataset.length; i++) {
+                    player = dataset.item(i);
 
-                    var linkeditdelete = '<li>' + item['name'] + ' : ' + item['score'] + ' [' + item['played'] + '] '
+                    $(".player").append($('<option value="' + player['id'] + '">' + player['name'] + '</option>'));
+
+                    var linkeditdelete = '<li>' + player['name'] + ' : ' + player['score'] + ' [' + player['played'] + '] '
                         + '<a href="#" onclick="loadRecord(' + i + ');">edit</a>' + '    ' +
-                        '<a href="#" onclick="deleteRecord(' + item['id'] + ');">delete</a></li>';
+                        '<a href="#" onclick="deleteRecord(' + player['id'] + ');">delete</a></li>';
 
-                    $("#results").append(linkeditdelete);
+                    $("#stats").append(linkeditdelete);
+
                 }
             }
         );
+
+        tx.executeSql(selectAllStatement + "Ranks", [], function (tx, result) {
+            var dataset = result.rows;
+
+            for (var i = 0, rank = null; i < dataset.length; i++) {
+                rank = dataset.item(i);
+                var rankInfo = '<li>' + rank['title'] + ' : ' + rank['low_bound'] + ' - ' + rank['high_bound'] + '</li>';
+                $("#ranks").append(rankInfo);
+            }
+        });
     });
 }
 
@@ -186,14 +206,33 @@ function exportDatabase() { // Function for Export database data into sql file
     });
 }
 
+function postDBScript() {
+    $.ajax({
+        type: "POST",
+        url: "src/db-statements.sql",
+        enctype: 'multipart/form-data',
+        data: {
+            file: exportSql
+        },
+        success: function (data) {
+            alert("Data uploaded successfuly");
+        },
+        error: function (error, failingQuery) { //Failure
+            console.log("Error: " + error.message);
+        }
+    });
+}
+
 $(document).ready(function () { // Call function when page is ready for load..
     $("body").fadeIn(2000); // Fede In Effect when Page Load..
 
     initDatabase();
 
     // Register Event Listener when button click.
-    $("#submitButton").click(insertRecord);
+    $("#btnSave").click(insertRecord);
+    $("#btnSaveParty").click(saveParty);
     $("#btnUpdate").click(updateRecord);
     $("#btnReset").click(resetForm);
     $("#btnExport").click(exportDatabase);
+    $("#btnUpload").click(postDBScript);
 });

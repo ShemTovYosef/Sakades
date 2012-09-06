@@ -22,34 +22,77 @@
 <![endif]-->
 
 <!-- Add your site or application content here -->
-<h1>PLAYERS FORM</h1>
+<div class="section">
+    <ul class="tabs">
+        <li class="current">Players</li>
+        <li>Parties</li>
+        <li>Ranks</li>
+        <li>Stats</li>
+    </ul>
+    <div class="box visible">
+        <form>
+            <fieldset>
+                <legend>Player details</legend>
+                <ol>
+                    <li>
+                        <label for="name">Name</label>
+                        <input id="name" type="text" placeholder="First and last name" autofocus>
+                        <input type="hidden" id="id"/>
+                    </li>
 
-<form id="player">
-    <fieldset>
-        <legend>Your details</legend>
-        <ol>
-            <li>
-                <label for="name">Name</label>
-                <input id="name" type="text" placeholder="First and last name" autofocus>
-                <input type="hidden" id="id"/>
-            </li>
+                    <li>
+                        <label for="score">Score</label>
+                        <input id="score" type="text" placeholder="1600" pattern="[0-9]{3,4}">
+                        <input type="hidden" id="played"/>
+                    </li>
+                </ol>
+            </fieldset>
 
-            <li>
-                <label for="score">Score</label>
-                <input id="score" type="text" placeholder="1600" pattern="[0-9]{,4}">
-                <input type="hidden" id="played"/>
-            </li>
-        </ol>
-    </fieldset>
+            <button id="btnReset" type=submit>Reset</button>
+            <button id="btnSave" type="submit">Save</button>
+            <button id="btnUpdate" type=submit>Update</button>
+            <button id="btnExport" type=submit>Export</button>
+            <button id="btnUpload" type=submit>Upload</button>
 
-    <button id="btnReset" type=submit>Reset</button>
-    <button id="btnSave" type="submit">Save</button>
-    <button id="btnUpdate" type=submit>Update</button>
-    <button id="btnExport" type=submit>Export</button>
+        </form>
+    </div>
+    <div class="box">
+        <form>
+            <label for="result">The first team party result: </label>
+            <select id="result" required>
+                <option disabled>Result</option>
+                <option value="1">Win</option>
+                <option value="0.5">Tie</option>
+                <option value="0">Lose</option>
+            </select>
 
-</form><br />
+            <p>Please, select players participated in party:</p>
+            <select id="first" class="player" required>
+                <option disabled>First</option>
+            </select>
 
-<div id="results"></div>
+            <select id="second" class="player" required>
+                <option disabled>Second</option>
+            </select>
+
+            <select id="third" class="player" required>
+                <option disabled>Third</option>
+            </select>
+
+            <select id="fourth" class="player" required>
+                <option disabled>Fourth</option>
+            </select>
+
+            <button id="btnSaveParty" type=submit>Save</button>
+        </form>
+    </div>
+    <div id="ranks" class="box">
+    </div>
+    <div id="stats" class="box">
+    </div>
+</div>
+<!-- .section -->
+
 
 <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.8.1.min.js"><\/script>')</script>
 <script src="js/plugins.js"></script>
